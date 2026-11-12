@@ -102,28 +102,39 @@ For complete register-level specifications, timing diagrams, and DMA buffer geom
    ```bash
    cp -R kext/build/RPLDmic.kext /Volumes/EFI/EFI/OC/Kexts/
    ```
-3. Add `RPLDmic.kext` to `Kernel -> Add` in both `/Volumes/EFI/EFI/OC/config.plist` and `config-post.plist` immediately following `SimpleHDA.kext` at index `[06]`.
-4. Ensure `boot-args` contains `-rpldmic` while strictly preserving `ngreenSched=5`:
+3. Add `RPLDmic.kext` to `Kernel -> Add` in your OpenCore `config.plist` (and `config-post.plist` if maintained):
+   ```xml
+   <dict>
+       <key>Arch</key>
+       <string>x86_64</string>
+       <key>BundlePath</key>
+       <string>RPLDmic.kext</string>
+       <key>Comment</key>
+       <string>Intel Raptor Lake cAVS 2.5 DMIC Driver</string>
+       <key>Enabled</key>
+       <true/>
+       <key>ExecutablePath</key>
+       <string>Contents/MacOS/RPLDmic</string>
+       <key>MaxKernel</key>
+       <string></string>
+       <key>MinKernel</key>
+       <string>22.0.0</string>
+       <key>PlistPath</key>
+       <string>Contents/Info.plist</string>
+   </dict>
+   ```
+4. Ensure `boot-args` contains `-rpldmic` while strictly preserving scheduler guardrails (`ngreenSched=5`):
    ```xml
    <string>-v keepsyms=1 alcid=86 ngreenSched=5 -rpldmic</string>
    ```
-5. Validate configuration syntax:
-   ```bash
-   plutil -lint /Volumes/EFI/EFI/OC/config.plist
-   plutil -lint /Volumes/EFI/EFI/OC/config-post.plist
-   ```
 
-### Step 2: Reboot & Verify Kernel Service
-Reboot the machine. Once booted, confirm the kext is active in the IORegistry:
-```bash
-ioreg -l -w0 -c RPLDmic | grep -E '"PlatformFamily"|"RPLDmicVersion"|"BootResult"'
-```
-Expected output:
-```text
-"PlatformFamily" = 3
-"RPLDmicVersion" = "1.0.0"
-"BootResult" = "OK FW_READY"
-```
+### Step 2: Disable Realtek ALC257 Dummy Internal Mic (Recommended)
+On modern laptops (like Lenovo ThinkPad T14 Gen 4), the physical microphone array connects directly to Intel cAVS via PDM, not to the Realtek ALC257 codec. AppleALC's Layout 86 defines pin 0x12 as an internal mic, creating a dead silent input engine.
+
+To disable the dead pin so `RPLDmic` seamlessly becomes the primary built-in microphone for Siri and Dictation:
+In `/Volumes/EFI/EFI/OC/Kexts/AppleALC.kext/Contents/Info.plist`, locate `HDAConfigDefault` for `CodecID 283902551` (`0x10ec0257`) and `LayoutID 86`:
+* Replace pin 0x12 verb bytes (`01271c2001271d0101271ea601271f90`) with `01271cf001271d0001271e0001271f40` (`0x400000f0` = unconnected/disabled).
+* Validate syntax: `plutil -lint /Volumes/EFI/EFI/OC/Kexts/AppleALC.kext/Contents/Info.plist`.
 
 ### Step 3: Install CoreAudio HAL Plug-in
 Run the automated HAL staging script:
@@ -132,8 +143,13 @@ sudo bash hal/install-hal.sh
 ```
 This installs `RPLDmic.driver` to `/Library/Audio/Plug-Ins/HAL/`, sets permissions to `root:wheel` (`755`), strips quarantine flags, and restarts `coreaudiod`.
 
-### Step 4: Run Diagnostic Verification
-Execute the verification tool to confirm end-to-end functionality:
+### Step 4: Reboot & Verify
+Reboot the machine. Open **System Settings -> Sound -> Input**:
+* **Device:** `Built-in Microphone`
+* **Input Source:** `Internal Microphone` (48,000 Hz, Apple Inc.)
+* **Siri & Dictation:** Test by triggering Siri or Voice Memos—audio routes immediately without needing extra configuration!
+
+Run the diagnostic verification tool anytime to inspect driver state:
 ```bash
 ./verify-rpldmic.sh
 ```
