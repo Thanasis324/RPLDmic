@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Embed SOF firmware images in the kext:
-   gen-fw.py --tgl <sof-tgl.ri> --cml <sof-cml.ri> -o <out.c>
-   or legacy: gen-fw.py <input.ri> <out.c>
+   gen-fw.py --rpl <sof-rpl.ri> --tgl <sof-tgl.ri> --cml <sof-cml.ri> -o <out.c>
+   or legacy/positional: gen-fw.py <input.ri> <out.c/h>
 """
 import sys, argparse
 
@@ -15,22 +15,32 @@ def write_array(f, var_name, data, filename):
 
 def main():
     if len(sys.argv) == 3 and not sys.argv[1].startswith("-"):
-        # Legacy positional usage
-        data = open(sys.argv[1], "rb").read()
+        # Positional usage: gen-fw.py <input.ri> <output>
+        filename = sys.argv[1]
+        data = open(filename, "rb").read()
         with open(sys.argv[2], "w") as f:
-            write_array(f, "kSofTglRi", data, sys.argv[1])
-            # If only 1 file provided in legacy mode, also provide kSofCmlRi as alias
-            write_array(f, "kSofCmlRi", data, sys.argv[1])
+            f.write("// Auto-generated SOF firmware tables for RPLDmic / TGLDmic\n\n")
+            # Always emit kSofRplRi as primary, and provide aliases for compatibility
+            write_array(f, "kSofRplRi", data, filename)
+            write_array(f, "kSofTglRi", data, filename)
+            write_array(f, "kSofCmlRi", data, filename)
         return
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--rpl", required=False, help="Raptor Lake firmware image")
+    parser.add_argument("--adl", required=False, help="Alder Lake firmware image (alias for rpl)")
     parser.add_argument("--tgl", required=False, help="Tiger Lake firmware image")
     parser.add_argument("--cml", required=False, help="Comet Lake / Cannon Lake firmware image")
     parser.add_argument("-o", "--output", required=True, help="Output C source file")
     args = parser.parse_args()
 
+    rpl_file = args.rpl or args.adl
+
     with open(args.output, "w") as f:
-        f.write("// Auto-generated SOF firmware tables for TGLDmic\n\n")
+        f.write("// Auto-generated SOF firmware tables for RPLDmic / TGLDmic\n\n")
+        if rpl_file:
+            data = open(rpl_file, "rb").read()
+            write_array(f, "kSofRplRi", data, rpl_file)
         if args.tgl:
             data = open(args.tgl, "rb").read()
             write_array(f, "kSofTglRi", data, args.tgl)

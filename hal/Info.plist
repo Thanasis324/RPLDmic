@@ -5,19 +5,19 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
-	<string>TGLDmic</string>
+	<string>RPLDmic</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.labrouss.TGLDmic.driver</string>
+	<string>org.thesofproject.driver.RPLDmic</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>TGLDmic</string>
+	<string>RPLDmic</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.5.0</string>
+	<string>1.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>0.5.0</string>
+	<string>1.0.0</string>
 	<key>CFBundleSupportedPlatforms</key>
 	<array>
 		<string>MacOSX</string>
@@ -27,7 +27,7 @@
 	<key>CFPlugInFactories</key>
 	<dict>
 		<key>1CA3BC91-7C60-53EC-B246-437C1D0C151C</key>
-		<string>TGLDmic_Create</string>
+		<string>RPLDmic_Create</string>
 	</dict>
 	<key>CFPlugInTypes</key>
 	<dict>
@@ -38,6 +38,7 @@
 	</dict>
 	<key>AudioServerPlugIn_IOKitUserClients</key>
 	<array>
+		<string>RPLDmicUserClient</string>
 		<string>TGLDmicUserClient</string>
 	</array>
 </dict>
