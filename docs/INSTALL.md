@@ -34,7 +34,8 @@ diskutil mount /dev/disk0s1   # Or use OpenCore Auxiliary Tools / MountEFI
 
 ### Step 2.2: Copy Kext to EFI Volume
 ```bash
-cp -R /Users/thanasis/Documents/RPLDmic/kext/build/RPLDmic.kext /Volumes/EFI/EFI/OC/Kexts/
+cp -R kext/RPLDmic.kext /Volumes/EFI/EFI/OC/Kexts/
+# (or cp -R kext/build/RPLDmic.kext if built from source)
 ```
 Verify that the staged kext contains the compiled binary:
 ```bash
@@ -87,6 +88,15 @@ diff /Volumes/EFI/EFI/OC/config.plist /Volumes/EFI/EFI/OC/config-post.plist
 # Must return empty diff
 ```
 
+### Step 2.6: Disable Realtek ALC257 Dummy Node (Recommended)
+On modern laptops (such as Lenovo ThinkPad T14 Gen 4), the physical microphone array connects directly to Intel cAVS via PDM, not to the Realtek ALC257 codec. AppleALC Layout 86 defines pin 0x12 as an internal mic, creating a dead, silent input engine that macOS often prefers over external/secondary inputs.
+
+Run the automated patching tool to disable pin 0x12 (`0x400000f0`) on your mounted EFI:
+```bash
+python3 tools/patch-applealc.py /Volumes/EFI/EFI/OC/Kexts/AppleALC.kext
+```
+*(The script creates a `.bak` backup and verifies syntax with `plutil`).*
+
 ---
 
 ## 3. Supported Boot-Arg Flags & Parameters
@@ -127,7 +137,8 @@ If performing manual deployment:
 sudo rm -rf /Library/Audio/Plug-Ins/HAL/RPLDmic.driver
 
 # 2. Copy driver bundle
-sudo cp -R hal/build/RPLDmic.driver /Library/Audio/Plug-Ins/HAL/
+sudo cp -R hal/RPLDmic.driver /Library/Audio/Plug-Ins/HAL/
+# (or sudo cp -R hal/build/RPLDmic.driver /Library/Audio/Plug-Ins/HAL/ if built from source)
 
 # 3. Apply root:wheel ownership and 755 permissions
 sudo chown -R root:wheel /Library/Audio/Plug-Ins/HAL/RPLDmic.driver
@@ -176,11 +187,12 @@ Recording 3 seconds into probe.wav...
 Recording completed: 144000 frames captured.
 ```
 
-### Step 5.4: Test Native CoreAudio Input
+### Step 5.4: Test Native CoreAudio Input & Siri
 1. Open **System Settings → Sound → Input**.
-2. Select **Intel Raptor Lake Digital Microphone**.
+2. Verify **Built-in Microphone** is selected with **Input source: Internal Microphone** (48,000 Hz, Apple Inc.).
 3. Speak into the ThinkPad microphone: observe the input level meter moving responsively.
-4. Open **Voice Memos** or **QuickTime Player** (File → New Audio Recording) and make a test recording.
+4. Test Siri ("Hey Siri" or click Siri icon): verify Siri receives and executes your spoken commands accurately.
+5. Open **Voice Memos** or **QuickTime Player** (File → New Audio Recording) to make a test recording.
 
 ---
 

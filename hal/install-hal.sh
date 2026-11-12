@@ -41,4 +41,4 @@ sudo xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/HAL/RPLDmic.driver 2
 
 echo "Restarting coreaudiod..."
 sudo killall coreaudiod 2>/dev/null || sudo launchctl kickstart -k system/com.apple.audio.coreaudiod
-echo "Installed successfully. Check 'Intel Raptor Lake Digital Microphone' in System Settings > Sound > Input."
+echo "Installed successfully. Check 'Built-in Microphone' (Input Source: Internal Microphone) in System Settings > Sound > Input."

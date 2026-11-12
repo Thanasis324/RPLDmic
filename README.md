@@ -100,7 +100,8 @@ For complete register-level specifications, timing diagrams, and DMA buffer geom
    ```
 2. Copy `RPLDmic.kext` into `/Volumes/EFI/EFI/OC/Kexts/`:
    ```bash
-   cp -R kext/build/RPLDmic.kext /Volumes/EFI/EFI/OC/Kexts/
+   cp -R kext/RPLDmic.kext /Volumes/EFI/EFI/OC/Kexts/
+   # (or cp -R kext/build/RPLDmic.kext if you built from source)
    ```
 3. Add `RPLDmic.kext` to `Kernel -> Add` in your OpenCore `config.plist` (and `config-post.plist` if maintained):
    ```xml
@@ -129,9 +130,18 @@ For complete register-level specifications, timing diagrams, and DMA buffer geom
    ```
 
 ### Step 2: Disable Realtek ALC257 Dummy Internal Mic (Recommended)
-On modern laptops (like Lenovo ThinkPad T14 Gen 4), the physical microphone array connects directly to Intel cAVS via PDM, not to the Realtek ALC257 codec. AppleALC's Layout 86 defines pin 0x12 as an internal mic, creating a dead silent input engine.
+On modern laptops (such as the Lenovo ThinkPad T14 Gen 4), the physical microphone array connects directly to the Intel cAVS DSP via PDM, not to the Realtek ALC257 codec. AppleALC's Layout 86 defines pin 0x12 as an internal mic, creating a dead, silent input engine that macOS often prefers over external/secondary inputs.
 
-To disable the dead pin so `RPLDmic` seamlessly becomes the primary built-in microphone for Siri and Dictation:
+To disable the dead pin so `RPLDmic` seamlessly becomes the primary built-in microphone for Siri, Dictation, and system apps:
+
+**Option A (Automated):**
+Run the included patching script on your mounted EFI's `AppleALC.kext`:
+```bash
+python3 tools/patch-applealc.py /Volumes/EFI/EFI/OC/Kexts/AppleALC.kext
+```
+*(The script automatically creates a `.bak` backup and safely replaces pin 0x12's configuration with `0x400000f0`).*
+
+**Option B (Manual):**
 In `/Volumes/EFI/EFI/OC/Kexts/AppleALC.kext/Contents/Info.plist`, locate `HDAConfigDefault` for `CodecID 283902551` (`0x10ec0257`) and `LayoutID 86`:
 * Replace pin 0x12 verb bytes (`01271c2001271d0101271ea601271f90`) with `01271cf001271d0001271e0001271f40` (`0x400000f0` = unconnected/disabled).
 * Validate syntax: `plutil -lint /Volumes/EFI/EFI/OC/Kexts/AppleALC.kext/Contents/Info.plist`.
